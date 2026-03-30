@@ -5,6 +5,7 @@ import com.larpclient.config.LarpClientConfig
 import com.larpclient.events.EventBus
 import com.larpclient.features.overlay.GuiEditManager
 import com.larpclient.features.overlay.OverlayManager
+import com.larpclient.features.overlay.CortisolOverlay
 import com.larpclient.features.overlay.ExampleOverlay
 import com.larpclient.features.update.UpdateManager
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -65,6 +66,7 @@ object LarpClient {
 
         // Register features
         OverlayManager.register(ExampleOverlay)
+        OverlayManager.register(CortisolOverlay)
         GuiEditManager.init()
 
         // Register tick handler

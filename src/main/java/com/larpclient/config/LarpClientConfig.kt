@@ -46,6 +46,11 @@ class LarpClientConfig : Config() {
         var exampleOverlay: Boolean = true
 
         @Expose
+        @ConfigOption(name = "Cortisol Meter", desc = "Stress gauge replacing hearts - 0 = calm, 20 = dying")
+        @ConfigEditorBoolean
+        var cortisolMeter: Boolean = true
+
+        @Expose
         @ConfigOption(name = "Overlay Scale", desc = "Scale factor for overlays")
         @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
         var overlayScale: Float = 1.0f
