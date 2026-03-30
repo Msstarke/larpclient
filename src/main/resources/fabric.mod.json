@@ -18,12 +18,6 @@
         "adapter": "kotlin",
         "value": "com.larpclient.LarpClientLoader"
       }
-    ],
-    "modmenu": [
-      {
-        "adapter": "kotlin",
-        "value": "com.larpclient.config.ModMenuInterop"
-      }
     ]
   },
   "mixins": [

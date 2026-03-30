@@ -1,5 +1,6 @@
 package com.larpclient.features.update
 
+import com.google.gson.JsonPrimitive
 import com.larpclient.LarpClient
 import moe.nea.libautoupdate.GithubReleaseUpdateSource
 import moe.nea.libautoupdate.UpdateData
@@ -18,11 +19,12 @@ class LarpClientUpdateSource(owner: String, repo: String) : GithubReleaseUpdateS
         for (asset in release.assets) {
             val name = asset.name
             if (name.endsWith(".jar") && name.contains(targetVersion)) {
+                // UpdateData(versionName, versionNumber, sha256, download)
                 return UpdateData(
-                    release.tagName,
                     release.name ?: release.tagName,
-                    asset.browserDownloadUrl,
-                    release.body ?: ""
+                    JsonPrimitive(release.tagName),
+                    null, // sha256 not available from GitHub releases API
+                    asset.browserDownloadUrl
                 )
             }
         }
@@ -32,10 +34,10 @@ class LarpClientUpdateSource(owner: String, repo: String) : GithubReleaseUpdateS
         if (jars.size == 1) {
             val asset = jars[0]
             return UpdateData(
-                release.tagName,
                 release.name ?: release.tagName,
-                asset.browserDownloadUrl,
-                release.body ?: ""
+                JsonPrimitive(release.tagName),
+                null,
+                asset.browserDownloadUrl
             )
         }
 
@@ -44,8 +46,6 @@ class LarpClientUpdateSource(owner: String, repo: String) : GithubReleaseUpdateS
     }
 
     private fun getMinecraftVersion(): String {
-        // This will be the stonecutter-selected version at build time
-        // It's embedded in the JAR filename via build.gradle.kts
         return net.fabricmc.loader.api.FabricLoader.getInstance()
             .getModContainer("minecraft")
             .map { it.metadata.version.friendlyString }

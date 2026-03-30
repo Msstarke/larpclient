@@ -6,6 +6,7 @@ plugins {
 
 val modVersion: String by project
 val modId: String by project
+val moulconfigVersion = libs.versions.moulconfig.get()
 
 version = modVersion
 group = "com.larpclient"
@@ -14,9 +15,9 @@ base.archivesName.set("LarpClient")
 repositories {
     mavenCentral()
     maven("https://maven.fabricmc.net/")
+    maven("https://maven.notenoughupdates.org/releases")
     maven("https://repo.nea.moe/releases")
     maven("https://repo.nea.moe/mirror")
-    maven("https://notenoughupdates.org/maven/releases")
 }
 
 val shadowImpl: Configuration by configurations.creating {
@@ -30,8 +31,8 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    // MoulConfig - config GUI framework
-    shadowImpl(libs.moulconfig.modern) { isTransitive = false }
+    // MoulConfig - config GUI framework (version-specific artifact)
+    shadowImpl("org.notenoughupdates.moulconfig:modern-${stonecutter.current.version}:$moulconfigVersion") { isTransitive = false }
     shadowImpl(libs.moulconfig.common) { isTransitive = false }
 
     // LibAutoUpdate - auto-update from GitHub releases

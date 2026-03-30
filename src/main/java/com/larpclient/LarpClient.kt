@@ -55,12 +55,12 @@ object LarpClient {
         updateManager = UpdateManager()
         updateManager.cleanup()
 
-        // Register keybinds
+        // Register keybinds using KeyMapping.Category.MISC for the category
         openGuiKey = KeyBindingHelper.registerKeyBinding(
-            KeyMapping("key.$MOD_ID.open_gui", GLFW.GLFW_KEY_RIGHT_SHIFT, "key.categories.$MOD_ID")
+            KeyMapping("key.$MOD_ID.open_gui", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.MISC)
         )
         editOverlaysKey = KeyBindingHelper.registerKeyBinding(
-            KeyMapping("key.$MOD_ID.edit_overlays", GLFW.GLFW_KEY_F12, "key.categories.$MOD_ID")
+            KeyMapping("key.$MOD_ID.edit_overlays", GLFW.GLFW_KEY_F12, KeyMapping.Category.MISC)
         )
 
         // Register features

@@ -1,5 +1,7 @@
 package com.larpclient.features.update
 
+import com.google.gson.JsonElement
+import com.google.gson.JsonPrimitive
 import com.larpclient.LarpClient
 import moe.nea.libautoupdate.CurrentVersion
 
@@ -11,18 +13,10 @@ class LarpClientCurrentVersion : CurrentVersion {
 
     override fun display(): String = LarpClient.VERSION
 
-    override fun isOlderThan(otherVersion: CurrentVersion): Boolean {
-        if (otherVersion !is LarpClientCurrentVersion) {
-            return isOlderThan(otherVersion.display())
-        }
-        return isOlderThan(otherVersion.display())
-    }
-
-    private fun isOlderThan(other: String): Boolean {
+    override fun isOlderThan(otherVersion: JsonElement): Boolean {
+        val other = otherVersion.asString
         return compareVersions(LarpClient.VERSION, other) < 0
     }
-
-    override fun getVersionString(): String = LarpClient.VERSION
 
     companion object {
         /**

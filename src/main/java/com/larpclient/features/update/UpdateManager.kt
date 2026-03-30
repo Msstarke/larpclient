@@ -1,15 +1,11 @@
 package com.larpclient.features.update
 
 import com.larpclient.LarpClient
-import moe.nea.libautoupdate.CurrentVersion
-import moe.nea.libautoupdate.GithubReleaseUpdateSource
 import moe.nea.libautoupdate.PotentialUpdate
 import moe.nea.libautoupdate.UpdateContext
 import moe.nea.libautoupdate.UpdateTarget
-import moe.nea.libautoupdate.UpdateUtils
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import java.util.concurrent.CompletableFuture
@@ -50,37 +46,40 @@ class UpdateManager {
 
         LarpClient.logger.info("Checking for updates on stream: $stream")
         updateCheckFuture = context.checkUpdate(stream)
-            .thenAcceptAsync({ update ->
+            .thenAccept { update ->
                 updateCheckFuture = null
                 if (update != null && update.isUpdateAvailable) {
                     potentialUpdate = update
                     LarpClient.logger.info("Update available: ${update.update.versionName}")
 
-                    val msg = Component.literal("")
-                        .append(prefix())
-                        .append(Component.literal("New version available: ").withStyle(ChatFormatting.YELLOW))
-                        .append(Component.literal(update.update.versionName).withStyle(ChatFormatting.GREEN))
-                        .append(Component.literal(" (click to download)").withStyle(ChatFormatting.GRAY))
-                    msg.style = msg.style.withClickEvent(
-                        ClickEvent.RunCommand("/larpupdate download")
-                    )
-                    sendChat(msg)
+                    Minecraft.getInstance().execute {
+                        val msg = Component.literal("")
+                            .append(prefix())
+                            .append(Component.literal("New version available: ").withStyle(ChatFormatting.YELLOW))
+                            .append(Component.literal(update.update.versionName).withStyle(ChatFormatting.GREEN))
+                            .append(Component.literal(" - Use /larpupdate to download").withStyle(ChatFormatting.GRAY))
+                        sendChat(msg)
 
-                    if (LarpClient.config.update.autoDownload) {
-                        downloadUpdate()
+                        if (LarpClient.config.update.autoDownload) {
+                            downloadUpdate()
+                        }
                     }
                 } else {
                     if (notify) {
-                        sendChat("\u00a7aYou are running the latest version!")
+                        Minecraft.getInstance().execute {
+                            sendChat("\u00a7aYou are running the latest version!")
+                        }
                     }
                     LarpClient.logger.info("No updates available")
                 }
-            }, { runnable -> Minecraft.getInstance().execute(runnable) })
+            }
             .exceptionally { e ->
                 updateCheckFuture = null
                 LarpClient.logger.error("Failed to check for updates", e)
                 if (notify) {
-                    sendChat("\u00a7cFailed to check for updates. Check the log for details.")
+                    Minecraft.getInstance().execute {
+                        sendChat("\u00a7cFailed to check for updates. Check the log for details.")
+                    }
                 }
                 null
             }
@@ -92,21 +91,25 @@ class UpdateManager {
     fun downloadUpdate() {
         val update = potentialUpdate
         if (update == null) {
-            sendChat("\u00a7cNo update available to download.")
+            sendChat("\u00a7cNo update available to download. Run /larpupdate first.")
             return
         }
 
         sendChat("\u00a7eDownloading update ${update.update.versionName}...")
 
-        update.prepareUpdate()
-            .thenRunAsync({
-                update.executePreparedUpdate()
-                sendChat("\u00a7aUpdate downloaded! Restart the game to apply.")
+        // launchUpdate() does prepareUpdate + executePreparedUpdate asynchronously
+        update.launchUpdate()
+            .thenAccept {
+                Minecraft.getInstance().execute {
+                    sendChat("\u00a7aUpdate downloaded! Restart the game to apply.")
+                }
                 LarpClient.logger.info("Update prepared: ${update.update.versionName}")
-            }, { runnable -> Minecraft.getInstance().execute(runnable) })
+            }
             .exceptionally { e ->
                 LarpClient.logger.error("Failed to download update", e)
-                sendChat("\u00a7cFailed to download update. Check the log for details.")
+                Minecraft.getInstance().execute {
+                    sendChat("\u00a7cFailed to download update. Check the log for details.")
+                }
                 null
             }
     }
@@ -117,11 +120,11 @@ class UpdateManager {
 
     private fun sendChat(message: String) {
         val player = Minecraft.getInstance().player ?: return
-        player.sendSystemMessage(Component.literal("").append(prefix()).append(Component.literal(message)))
+        player.displayClientMessage(Component.literal("").append(prefix()).append(Component.literal(message)), false)
     }
 
     private fun sendChat(message: Component) {
         val player = Minecraft.getInstance().player ?: return
-        player.sendSystemMessage(message)
+        player.displayClientMessage(message, false)
     }
 }

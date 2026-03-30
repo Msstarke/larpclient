@@ -3,7 +3,6 @@ package com.larpclient.utils
 import com.larpclient.LarpClient
 import com.larpclient.features.overlay.GuiEditManager
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.network.chat.Component
 
 /**
  * Utility functions for rendering overlays on screen.
@@ -36,8 +35,8 @@ object RenderUtils {
         var maxWidth = 0
 
         val poseStack = graphics.pose()
-        poseStack.pushPose()
-        poseStack.scale(position.scale, position.scale, 1f)
+        poseStack.pushMatrix()
+        poseStack.scale(position.scale, position.scale)
 
         val scaledX = (effectiveX / position.scale).toInt()
         val scaledY = (effectiveY / position.scale).toInt()
@@ -54,25 +53,12 @@ object RenderUtils {
             }
         }
 
-        poseStack.popPose()
+        poseStack.popMatrix()
 
         // Register with the overlay editor for drag-to-reposition
         val totalWidth = (maxWidth * position.scale).toInt()
         val totalHeight = (lines.size * lineHeight * position.scale).toInt()
         GuiEditManager.register(position, label, effectiveX, effectiveY, totalWidth, totalHeight)
-    }
-
-    /**
-     * Render a single component at a position.
-     */
-    fun renderComponentAt(
-        graphics: GuiGraphics,
-        position: Position,
-        component: Component,
-        label: String,
-        color: Int = 0xFFFFFF
-    ) {
-        renderStringsAt(graphics, position, listOf(component.string), label, color)
     }
 
     /**

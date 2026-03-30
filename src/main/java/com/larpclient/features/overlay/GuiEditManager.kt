@@ -5,6 +5,7 @@ import com.larpclient.utils.Position
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 
 /**
@@ -51,8 +52,8 @@ object GuiEditManager {
 class OverlayEditorScreen : Screen(Component.literal("Overlay Position Editor")) {
 
     private var dragging: GuiEditManager.OverlayRect? = null
-    private var dragOffsetX = 0
-    private var dragOffsetY = 0
+    private var dragOffsetX = 0.0
+    private var dragOffsetY = 0.0
     private var lastRects: List<GuiEditManager.OverlayRect> = emptyList()
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -77,8 +78,12 @@ class OverlayEditorScreen : Screen(Component.literal("Overlay Position Editor"))
             val w = rect.width
             val h = rect.height
 
-            // Border
-            graphics.renderOutline(x - 1, y - 1, w + 2, h + 2, 0xFF00FF00.toInt())
+            // Border - draw manually since method name differs across versions
+            val borderColor = 0xFF00FF00.toInt()
+            graphics.fill(x - 1, y - 1, x + w + 1, y, borderColor) // top
+            graphics.fill(x - 1, y + h, x + w + 1, y + h + 1, borderColor) // bottom
+            graphics.fill(x - 1, y, x, y + h, borderColor) // left
+            graphics.fill(x + w, y, x + w + 1, y + h, borderColor) // right
 
             // Label above
             graphics.drawString(font, rect.label, x, y - 10, 0xFF00FF00.toInt())
@@ -87,41 +92,43 @@ class OverlayEditorScreen : Screen(Component.literal("Overlay Position Editor"))
         super.render(graphics, mouseX, mouseY, partialTick)
     }
 
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        if (button == 0) {
+    override fun mouseClicked(event: MouseButtonEvent, consumed: Boolean): Boolean {
+        if (!consumed) {
+            val mouseX = event.x()
+            val mouseY = event.y()
             for (rect in lastRects) {
                 val x = rect.position.getEffectiveX(width)
                 val y = rect.position.getEffectiveY(height)
                 if (mouseX >= x && mouseX <= x + rect.width && mouseY >= y && mouseY <= y + rect.height) {
                     dragging = rect
-                    dragOffsetX = (mouseX - x).toInt()
-                    dragOffsetY = (mouseY - y).toInt()
+                    dragOffsetX = mouseX - x
+                    dragOffsetY = mouseY - y
                     return true
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button)
+        return super.mouseClicked(event, consumed)
     }
 
-    override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, dragX: Double, dragY: Double): Boolean {
+    override fun mouseDragged(event: MouseButtonEvent, dragX: Double, dragY: Double): Boolean {
         val drag = dragging
-        if (drag != null && button == 0) {
-            val newX = (mouseX - dragOffsetX).toInt()
-            val newY = (mouseY - dragOffsetY).toInt()
+        if (drag != null) {
+            val newX = (event.x() - dragOffsetX).toInt()
+            val newY = (event.y() - dragOffsetY).toInt()
             drag.position.set(newX, newY)
             return true
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY)
+        return super.mouseDragged(event, dragX, dragY)
     }
 
-    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        if (button == 0 && dragging != null) {
+    override fun mouseReleased(event: MouseButtonEvent): Boolean {
+        if (dragging != null) {
             dragging = null
             // Save config after repositioning
             LarpClient.configManager.save()
             return true
         }
-        return super.mouseReleased(mouseX, mouseY, button)
+        return super.mouseReleased(event)
     }
 
     override fun isPauseScreen(): Boolean = false
