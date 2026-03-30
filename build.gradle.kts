@@ -40,6 +40,7 @@ dependencies {
 }
 
 loom {
+    accessWidenerPath.set(rootProject.file("src/main/resources/larpclient.accesswidener"))
     runConfigs.all {
         ideConfigGenerated(true)
         runDir("../../run") // shared run dir across versions

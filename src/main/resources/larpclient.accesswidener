@@ -1,0 +1,9 @@
+accessWidener	v2	named
+
+# Required by MoulConfig for GUI rendering
+accessible	field	net/minecraft/client/gui/GuiGraphics	scissorStack	Lnet/minecraft/client/gui/GuiGraphics$ScissorStack;
+accessible	class	net/minecraft/client/gui/GuiGraphics$ScissorStack
+accessible	field	net/minecraft/client/gui/GuiGraphics$ScissorStack	stack	Ljava/util/Deque;
+accessible	field	net/minecraft/client/renderer/GameRenderer	guiRenderState	Lnet/minecraft/client/gui/render/state/GuiRenderState;
+accessible	field	net/minecraft/client/gui/GuiGraphics	guiRenderState	Lnet/minecraft/client/gui/render/state/GuiRenderState;
+accessible	field	net/minecraft/client/renderer/RenderPipelines	GUI_SNIPPET	Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
