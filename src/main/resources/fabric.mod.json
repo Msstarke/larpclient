@@ -6,8 +6,8 @@
   "description": "A lightweight Minecraft client mod with overlay rendering and auto-updates.",
   "authors": ["LarpClient Team"],
   "contact": {
-    "homepage": "https://github.com/your-username/larpclient",
-    "sources": "https://github.com/your-username/larpclient"
+    "homepage": "https://github.com/Msstarke/larpclient",
+    "sources": "https://github.com/Msstarke/larpclient"
   },
   "license": "LGPL-3.0",
   "icon": "assets/larpclient/icon.png",

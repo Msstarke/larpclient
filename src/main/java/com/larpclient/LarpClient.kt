@@ -18,7 +18,7 @@ object LarpClient {
     const val MOD_ID = "larpclient"
     const val MOD_NAME = "Larp Client"
     const val VERSION = "0.1.0"
-    const val GITHUB_OWNER = "your-username"
+    const val GITHUB_OWNER = "Msstarke"
     const val GITHUB_REPO = "larpclient"
 
     val logger = LoggerFactory.getLogger(MOD_NAME)
