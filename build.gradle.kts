@@ -31,16 +31,17 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    // MoulConfig - config GUI framework (version-specific artifact)
-    shadowImpl("org.notenoughupdates.moulconfig:modern-${stonecutter.current.version}:$moulconfigVersion") { isTransitive = false }
-    shadowImpl(libs.moulconfig.common) { isTransitive = false }
+    // MoulConfig - config GUI framework (Jar-in-Jar so its access widener is preserved)
+    modImplementation("org.notenoughupdates.moulconfig:modern-${stonecutter.current.version}:$moulconfigVersion")
+    include("org.notenoughupdates.moulconfig:modern-${stonecutter.current.version}:$moulconfigVersion")
+    modImplementation(libs.moulconfig.common)
+    include(libs.moulconfig.common)
 
-    // LibAutoUpdate - auto-update from GitHub releases
+    // LibAutoUpdate - auto-update from GitHub releases (shaded, no MC access needed)
     shadowImpl(libs.libautoupdate)
 }
 
 loom {
-    accessWidenerPath.set(rootProject.file("src/main/resources/larpclient.accesswidener"))
     runConfigs.all {
         ideConfigGenerated(true)
         runDir("../../run") // shared run dir across versions
@@ -66,7 +67,6 @@ tasks {
     shadowJar {
         configurations = listOf(shadowImpl)
         archiveClassifier.set("dev-shadow")
-        relocate("io.github.notenoughupdates.moulconfig", "com.larpclient.deps.moulconfig")
         relocate("moe.nea.libautoupdate", "com.larpclient.deps.libautoupdate")
         mergeServiceFiles()
     }

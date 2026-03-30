@@ -20,7 +20,6 @@
       }
     ]
   },
-  "accessWidener": "larpclient.accesswidener",
   "mixins": [
     "larpclient.mixins.json"
   ],
