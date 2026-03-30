@@ -1,48 +1,95 @@
 package com.larpclient.features.update
 
+import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonPrimitive
 import com.larpclient.LarpClient
-import moe.nea.libautoupdate.GithubReleaseUpdateSource
 import moe.nea.libautoupdate.UpdateData
+import moe.nea.libautoupdate.UpdateSource
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.CompletableFuture
 
 /**
- * Custom GitHub release update source that filters release assets
- * to match the current Minecraft version.
+ * Custom update source that supports private GitHub repos via token auth.
+ * Falls back to unauthenticated requests if no token is configured.
  */
-class LarpClientUpdateSource(owner: String, repo: String) : GithubReleaseUpdateSource(owner, repo) {
+class LarpClientUpdateSource(
+    private val owner: String,
+    private val repo: String
+) : UpdateSource {
 
-    override fun findAsset(release: GithubRelease): UpdateData? {
-        // Look for the JAR that matches our Minecraft version in the filename
-        // e.g., LarpClient-0.2.0-mc1.21.10.jar
-        val targetVersion = getMinecraftVersion()
+    private val gson = Gson()
 
-        for (asset in release.assets) {
-            val name = asset.name
-            if (name.endsWith(".jar") && name.contains(targetVersion)) {
-                // UpdateData(versionName, versionNumber, sha256, download)
-                return UpdateData(
-                    release.name ?: release.tagName,
-                    JsonPrimitive(release.tagName),
-                    null, // sha256 not available from GitHub releases API
-                    asset.browserDownloadUrl
-                )
+    override fun checkUpdate(updateStream: String): CompletableFuture<UpdateData?> {
+        return CompletableFuture.supplyAsync {
+            try {
+                val releases = fetchReleases()
+                if (releases == null || releases.size() == 0) return@supplyAsync null
+
+                val targetMcVersion = getMinecraftVersion()
+                val isPrerelease = updateStream.equals("beta", ignoreCase = true)
+
+                for (element in releases) {
+                    val release = element.asJsonObject
+                    val prerelease = release.get("prerelease")?.asBoolean ?: false
+                    if (!isPrerelease && prerelease) continue
+
+                    val tagName = release.get("tag_name")?.asString ?: continue
+                    val releaseName = release.get("name")?.asString ?: tagName
+                    val assets = release.getAsJsonArray("assets") ?: continue
+
+                    // Find matching JAR for our MC version
+                    for (assetElement in assets) {
+                        val asset = assetElement.asJsonObject
+                        val name = asset.get("name")?.asString ?: continue
+                        if (!name.endsWith(".jar")) continue
+                        if (name.contains("sources")) continue
+
+                        if (name.contains(targetMcVersion) || assets.size() == 1) {
+                            val downloadUrl = asset.get("browser_download_url")?.asString ?: continue
+                            return@supplyAsync UpdateData(
+                                releaseName,
+                                JsonPrimitive(tagName),
+                                null,
+                                downloadUrl
+                            )
+                        }
+                    }
+                }
+                null
+            } catch (e: Exception) {
+                LarpClient.logger.error("Failed to check for updates", e)
+                null
             }
         }
+    }
 
-        // Fallback: if there's only one JAR, use it
-        val jars = release.assets.filter { it.name.endsWith(".jar") && !it.name.contains("sources") }
-        if (jars.size == 1) {
-            val asset = jars[0]
-            return UpdateData(
-                release.name ?: release.tagName,
-                JsonPrimitive(release.tagName),
-                null,
-                asset.browserDownloadUrl
-            )
+    private fun fetchReleases(): JsonArray? {
+        val url = URL("https://api.github.com/repos/$owner/$repo/releases")
+        val conn = url.openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+        conn.setRequestProperty("User-Agent", "LarpClient/${LarpClient.VERSION}")
+        conn.connectTimeout = 10000
+        conn.readTimeout = 10000
+
+        // Add auth token for private repos
+        val token = LarpClient.config.update.githubToken
+        if (token.isNotBlank()) {
+            conn.setRequestProperty("Authorization", "token $token")
         }
 
-        LarpClient.logger.warn("No matching JAR found for MC $targetVersion in release ${release.tagName}")
-        return null
+        val responseCode = conn.responseCode
+        if (responseCode != 200) {
+            LarpClient.logger.warn("GitHub API returned $responseCode for releases")
+            return null
+        }
+
+        return InputStreamReader(conn.inputStream).use { reader ->
+            gson.fromJson(reader, JsonArray::class.java)
+        }
     }
 
     private fun getMinecraftVersion(): String {

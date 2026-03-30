@@ -71,5 +71,10 @@ class LarpClientConfig : Config() {
         @ConfigOption(name = "Update Stream", desc = "Which release channel to follow (releases or beta)")
         @ConfigEditorText
         var updateStream: String = "releases"
+
+        @Expose
+        @ConfigOption(name = "GitHub Token", desc = "Personal access token for private repo updates (leave blank for public repos)")
+        @ConfigEditorText
+        var githubToken: String = ""
     }
 }

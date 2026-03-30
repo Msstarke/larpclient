@@ -3,6 +3,7 @@ package com.larpclient.features.update
 import com.larpclient.LarpClient
 import moe.nea.libautoupdate.PotentialUpdate
 import moe.nea.libautoupdate.UpdateContext
+import moe.nea.libautoupdate.UpdateData
 import moe.nea.libautoupdate.UpdateTarget
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -12,30 +13,20 @@ import java.util.concurrent.CompletableFuture
 
 class UpdateManager {
 
-    private val context: UpdateContext
+    private val updateSource = LarpClientUpdateSource(LarpClient.GITHUB_OWNER, LarpClient.GITHUB_REPO)
+    private val updateTarget = UpdateTarget.deleteAndSaveInTheSameFolder(UpdateManager::class.java)
+    private val currentVersion = LarpClientCurrentVersion()
+    private val context = UpdateContext(
+        updateSource, updateTarget, currentVersion, LarpClient.MOD_ID
+    )
+
     private var potentialUpdate: PotentialUpdate? = null
     private var updateCheckFuture: CompletableFuture<*>? = null
 
-    init {
-        context = UpdateContext(
-            LarpClientUpdateSource(LarpClient.GITHUB_OWNER, LarpClient.GITHUB_REPO),
-            UpdateTarget.deleteAndSaveInTheSameFolder(UpdateManager::class.java),
-            LarpClientCurrentVersion(),
-            LarpClient.MOD_ID
-        )
-    }
-
-    /**
-     * Clean up leftover temp files from a previous update.
-     */
     fun cleanup() {
         context.cleanup()
     }
 
-    /**
-     * Check for a new update on GitHub releases.
-     * @param notify If true, sends a chat message even if no update is found.
-     */
     fun checkUpdate(notify: Boolean = false) {
         if (updateCheckFuture != null) {
             if (notify) sendChat("\u00a7eAlready checking for updates...")
@@ -43,20 +34,22 @@ class UpdateManager {
         }
 
         val stream = LarpClient.config.update.updateStream
-
         LarpClient.logger.info("Checking for updates on stream: $stream")
-        updateCheckFuture = context.checkUpdate(stream)
-            .thenAccept { update ->
+
+        // Use our custom source directly (supports private repos with token)
+        updateCheckFuture = updateSource.checkUpdate(stream)
+            .thenAccept { updateData ->
                 updateCheckFuture = null
-                if (update != null && update.isUpdateAvailable) {
+                if (updateData != null && currentVersion.isOlderThan(updateData.versionNumber)) {
+                    val update = PotentialUpdate(updateData, context)
                     potentialUpdate = update
-                    LarpClient.logger.info("Update available: ${update.update.versionName}")
+                    LarpClient.logger.info("Update available: ${updateData.versionName}")
 
                     Minecraft.getInstance().execute {
                         val msg = Component.literal("")
                             .append(prefix())
                             .append(Component.literal("New version available: ").withStyle(ChatFormatting.YELLOW))
-                            .append(Component.literal(update.update.versionName).withStyle(ChatFormatting.GREEN))
+                            .append(Component.literal(updateData.versionName).withStyle(ChatFormatting.GREEN))
                             .append(Component.literal(" - Use /larpupdate to download").withStyle(ChatFormatting.GRAY))
                         sendChat(msg)
 
@@ -85,9 +78,6 @@ class UpdateManager {
             }
     }
 
-    /**
-     * Download and prepare the pending update.
-     */
     fun downloadUpdate() {
         val update = potentialUpdate
         if (update == null) {
@@ -97,7 +87,6 @@ class UpdateManager {
 
         sendChat("\u00a7eDownloading update ${update.update.versionName}...")
 
-        // launchUpdate() does prepareUpdate + executePreparedUpdate asynchronously
         update.launchUpdate()
             .thenAccept {
                 Minecraft.getInstance().execute {
